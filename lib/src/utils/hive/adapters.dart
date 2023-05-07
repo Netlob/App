@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:argo/src/utils/capitalize.dart';
 part 'adapters.g.dart';
 
-DateFormat formatDatum = DateFormat("EEEE dd MMMM");
+DateFormat formatDatum = DateFormat("EEEE d MMMM");
 DateFormat formatDate = DateFormat("yyyy-MM-dd");
 
 @HiveType(typeId: 1)
@@ -164,6 +164,10 @@ class Les {
   bool heeftBijlagen;
   @HiveField(23)
   List<Bron> bijlagen;
+  @HiveField(24)
+  bool status5;
+  @HiveField(25)
+  String aantekening;
 
   String getName() {
     Box custom = Hive.box("custom");
@@ -171,7 +175,7 @@ class Les {
 
     String customName = custom.get("vak${this.vak.id}");
     String vakName = userdata.get("useVakName") ? this.vak.naam : null;
-
+    if (vakName == "Leeg") vakName = null;
     return customName ?? vakName ?? this.title;
   }
 
@@ -183,7 +187,7 @@ class Les {
     int endHour = les["LesuurTotMet"];
 
     DateFormat formatHour = DateFormat("HH:mm");
-    DateFormat formatDatum = DateFormat("EEEE dd MMMM");
+    DateFormat formatDatum = DateFormat("EEEE d MMMM");
     int minFromMidnight = start.difference(DateTime(start.year, start.month, start.day)).inMinutes;
     var hour = (startHour == endHour ? startHour.toString() : '$startHour - $endHour');
     this.start = minFromMidnight ?? "";
@@ -192,6 +196,7 @@ class Les {
     this.startTime = formatHour.format(start);
     this.endTime = formatHour.format(end);
     this.description = les["Inhoud"] ?? "";
+    this.aantekening = les["Aantekening"] ?? "";
     this.title = les["Omschrijving"] ?? "";
     this.location = les["Lokatie"];
     this.date = formatDatum.format(start);
@@ -207,6 +212,7 @@ class Les {
     this.startDateTime = start;
     this.heleDag = les["DuurtHeleDag"];
     this.uitval = [4, 5].contains(les["Status"]);
+    this.status5 = les["Status"] == 5;
     this.information = (!["", null].contains(les["Lokatie"]) ? les["Lokatie"] + " • " : "") + formatHour.format(start) + " - " + formatHour.format(end) + (les["Inhoud"] != null ? " • " + les["Inhoud"].replaceAll(RegExp("<[^>]*>"), "") : "");
     this.editable = les["Type"] == 1;
     this.id = les["Id"];

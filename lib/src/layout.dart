@@ -115,30 +115,30 @@ class HomeState extends State<Home> with AfterLayoutMixin<Home> {
   }
 
   Widget _buildAccountListTile(Account acc) {
+    void deleteAccount() {
+      accounts.delete(accounts.toMap().entries.firstWhere((a) => a.value.id == acc.id).key);
+      if (accounts.isEmpty) {
+        accounts.clear();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Introduction(),
+          ),
+        );
+        return;
+      }
+
+      if (acc.id == currentAccount.value.id) {
+        userdata.put("accountIndex", accounts.keys.first);
+        currentAccount.value = account();
+      }
+
+      setStateAccountList();
+    }
+
     return ListTile(
       trailing: PopupMenuButton<accountOptions>(
         onSelected: (result) async {
-          void deleteAccount() {
-            accounts.delete(accounts.toMap().entries.firstWhere((a) => a.value.id == acc.id).key);
-            if (accounts.isEmpty) {
-              accounts.clear();
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => Introduction(),
-                ),
-              );
-              return;
-            }
-
-            if (acc.id == currentAccount.value.id) {
-              userdata.put("accountIndex", accounts.keys.first);
-              currentAccount.value = account();
-            }
-
-            setStateAccountList();
-          }
-
           switch (result) {
             case accountOptions.refresh:
               Navigator.push(
@@ -223,8 +223,8 @@ class HomeState extends State<Home> with AfterLayoutMixin<Home> {
       ),
       leading: CircleAvatar(
         backgroundColor: Theme.of(context).backgroundColor,
-        backgroundImage: !userdata.get("useIcon") && acc.profilePicture != null ? Image.memory(base64Decode(acc.profilePicture)).image : null,
-        child: userdata.get("useIcon")
+        backgroundImage: !useUserIcon(acc) ? Image.memory(base64Decode(acc.profilePicture)).image : null,
+        child: useUserIcon(acc)
             ? Icon(
                 Icons.person,
                 size: 25,
@@ -239,6 +239,10 @@ class HomeState extends State<Home> with AfterLayoutMixin<Home> {
       ),
       onTap: () => changeAccount(acc.id),
     );
+  }
+
+  bool useUserIcon(Account account) {
+    return userdata.get("useIcon") || account.profilePicture == null;
   }
 
   @override
@@ -287,8 +291,8 @@ class HomeState extends State<Home> with AfterLayoutMixin<Home> {
                                   onTap: () => changeAccount(acc.id),
                                   child: CircleAvatar(
                                     backgroundColor: Theme.of(context).backgroundColor,
-                                    backgroundImage: !userdata.get("useIcon") && acc.profilePicture != null ? Image.memory(base64Decode(acc.profilePicture)).image : null,
-                                    child: userdata.get("useIcon")
+                                    backgroundImage: !useUserIcon(acc) ? Image.memory(base64Decode(acc.profilePicture)).image : null,
+                                    child: useUserIcon(acc)
                                         ? Icon(
                                             Icons.person,
                                             size: 25,
@@ -304,12 +308,12 @@ class HomeState extends State<Home> with AfterLayoutMixin<Home> {
                           children: [
                             CircleAvatar(
                               backgroundColor: Theme.of(context).backgroundColor,
-                              backgroundImage: !userdata.get("useIcon")
+                              backgroundImage: !useUserIcon(account)
                                   ? Image.memory(
                                       base64Decode(account.profilePicture),
                                     ).image
                                   : null,
-                              child: userdata.get("useIcon")
+                              child: useUserIcon(account)
                                   ? Icon(
                                       Icons.person_outline,
                                       size: 50,

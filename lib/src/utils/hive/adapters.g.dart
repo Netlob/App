@@ -150,13 +150,15 @@ class LesAdapter extends TypeAdapter<Les> {
       ..startDateTime = fields[20] as DateTime
       ..onlineLes = fields[21] as bool
       ..heeftBijlagen = fields[22] as bool
-      ..bijlagen = (fields[23] as List)?.cast<Bron>();
+      ..bijlagen = (fields[23] as List)?.cast<Bron>()
+      ..status5 = fields[24] as bool
+      ..aantekening = fields[25] as String;
   }
 
   @override
   void write(BinaryWriter writer, Les obj) {
     writer
-      ..writeByte(24)
+      ..writeByte(26)
       ..writeByte(0)
       ..write(obj.start)
       ..writeByte(1)
@@ -204,7 +206,11 @@ class LesAdapter extends TypeAdapter<Les> {
       ..writeByte(22)
       ..write(obj.heeftBijlagen)
       ..writeByte(23)
-      ..write(obj.bijlagen);
+      ..write(obj.bijlagen)
+      ..writeByte(24)
+      ..write(obj.status5)
+      ..writeByte(25)
+      ..write(obj.aantekening);
   }
 
   @override

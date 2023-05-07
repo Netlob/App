@@ -281,20 +281,63 @@ class LoginView extends StatelessWidget {
                     return Future.value(true);
                   },
                   dataBuilder: (context, _) {
-                    bool accountExists = accounts.values.any((acc) => acc.id == account.id);
-                    if (accountExists) {
+                    Account existingAccount = accounts.values.firstWhere((acc) => acc.id == account.id, orElse: () => null);
+
+                    if (existingAccount != null) {
                       Timer.run(() {
                         Fluttertoast.showToast(
                           msg: "$account is al ingelogd!",
                         );
-                        magisterLogin.url = magisterLogin.createURL();
-                        redirectUrl.value = null;
                       });
 
-                      return Center(
-                        child: Text("$account is al ingelogd!"),
+                      return Container(
+                        width: double.infinity,
+                        height: bodyHeight(context),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text("$account is al ingelogd"),
+                            Text("Wat wil je doen?"),
+                            Padding(
+                              padding: EdgeInsets.all(8),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                children: [
+                                  ElevatedButton.icon(
+                                    icon: Icon(Icons.undo),
+                                    label: Text("Opnieuw Inloggen"),
+                                    onPressed: () {
+                                      magisterLogin.url = magisterLogin.createURL();
+                                      redirectUrl.value = null;
+                                    },
+                                  ),
+                                  ElevatedButton.icon(
+                                    icon: Icon(Icons.update),
+                                    label: Text("Gebruik deze inloggegevens voor $account"),
+                                    onPressed: () {
+                                      existingAccount.refreshToken = account.refreshToken;
+                                      existingAccount.expiry = 0;
+                                      existingAccount.save();
+                                      Navigator.of(context).pop();
+                                    },
+                                  ),
+                                  ElevatedButton.icon(
+                                    icon: Icon(Icons.share),
+                                    label: Text("Deel account"),
+                                    onPressed: () {
+                                      Share.share(account.refreshToken);
+                                      Navigator.of(context).pop();
+                                    },
+                                  ),
+                                ],
+                              ),
+                            )
+                          ],
+                        ),
                       );
                     }
+
                     return RefreshAccountView(account, context, magisterLogin.callback);
                   },
                 );
@@ -536,7 +579,7 @@ class MagisterLogin {
         "refresh_token": tempAccount.refreshToken,
       };
     } else {
-      String code = _tokenRegex.firstMatch(url).group(0);
+      String code = Uri.parse(url.replaceFirst("#", "?")).queryParameters["code"];
 
       Response res = await Dio().post(
         "https://accounts.magister.net/connect/token",

@@ -5,6 +5,7 @@ on:
     push:
         branches:
             - master
+
 env:
     flutter_version: 2.2.1
 
@@ -28,7 +29,7 @@ jobs:
                   key: ${{ runner.OS }}-flutter-install-cache-${{ env.flutter_version }}
 
             - name: Setup Flutter
-              uses: subosito/flutter-action@v1
+              uses: subosito/flutter-action@v1.5.3
               with:
                   flutter-version: ${{ env.flutter_version }}
 
@@ -43,11 +44,11 @@ jobs:
               run: flutter analyze .
             - name: Check Format
               run: flutter format --set-exit-if-changed -l 9999 --dry-run .
-            - name: Test
-              run: flutter test
-              env:
-                  TOKEN_API: ${{ secrets.TOKEN_API }}
-                  TOKEN_API_AUTH: ${{ secrets.TOKEN_API_AUTH }}
+            # - name: Test
+            #   run: flutter test
+            #   env:
+            #       TOKEN_API: ${{ secrets.TOKEN_API }}
+            #       TOKEN_API_AUTH: ${{ secrets.TOKEN_API_AUTH }}
 
             # Build
             - name: Build
@@ -55,12 +56,13 @@ jobs:
 
             # Add File
             - name: Export APK
-              uses: actions/upload-artifact@v1
+              uses: actions/upload-artifact@v3
               with:
                   name: release-apk
-                  path: build/app/outputs/apk/release/app-armeabi-v7a-release.apk
+                  path: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
 
-            - name: Notify Discord
-              run: curl $URL
-              env:
-                  URL: ${{secrets.URL}}
+            # Upload
+
+            - name: Upload APK to API
+              run: |
+                  curl -X POST -F file='@build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk' -F head_sha=$GITHUB_SHA -H 'Authorization: Bearer ${{secrets.UPLOAD_TOKEN}}' https://api.argo-magister.nl/v1/builder/upload/

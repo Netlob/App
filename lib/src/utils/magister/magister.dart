@@ -36,8 +36,19 @@ class Magister {
   }
 
   Future downloadProfilePicture() async {
-    var img = (await api.dio.get("api/leerlingen/${account.id}/foto", options: Options(responseType: ResponseType.bytes)));
-    String image = base64Encode(img.data);
+    var img = (await api.dio.get(
+      "api/leerlingen/${account.id}/foto",
+      options: Options(
+        responseType: ResponseType.bytes,
+        validateStatus: (status) => [200, 404].contains(status),
+      ),
+    ));
+
+    String image;
+    if (img.statusCode == 200) {
+      image = base64Encode(img.data);
+    }
+
     account.profilePicture = image;
     if (account.isInBox) account.save();
   }
@@ -61,7 +72,7 @@ class MagisterApi {
       await account.saveTokens(res.data);
     }).catchError((err) {
       print("Error while refreshing token");
-      print(err);
+      throw err;
     }).whenComplete(
       () => this.dio.unlock(),
     );
@@ -84,6 +95,7 @@ class MagisterApi {
             return handler.reject(DioError(
               requestOptions: e.requestOptions,
               error: "Dit account is uitgelogd, verwijder je account en log opnieuw in. (Spijt me zeer hier is nog geen automatische support voor)",
+              response: e.response,
             ));
             // MagisterLogin().launch(main.appState.context, (tokenSet, _) {
             //   account.saveTokens(tokenSet);

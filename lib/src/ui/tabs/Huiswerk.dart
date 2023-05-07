@@ -12,11 +12,9 @@ import 'package:argo/src/utils/handleError.dart';
 import 'package:argo/src/utils/account.dart';
 
 import 'package:argo/src/ui/components/Card.dart';
-import 'package:argo/src/ui/components/grayBorder.dart';
 import 'package:argo/src/ui/components/AppPage.dart';
 import 'package:argo/src/ui/components/WebContent.dart';
 import 'package:argo/src/ui/components/EmptyPage.dart';
-import 'package:argo/src/ui/components/LiveList.dart';
 import 'package:argo/src/ui/components/ContentHeader.dart';
 
 import 'Agenda.dart';
@@ -77,12 +75,9 @@ class _Huiswerk extends State<Huiswerk> with AfterLayoutMixin<Huiswerk>, SingleT
           },
           errorBuilder: (c, error, retry) => RefreshIndicator(
             onRefresh: () async => retry(),
-            child: SingleChildScrollView(
-              physics: AlwaysScrollableScrollPhysics(),
-              child: EmptyPage(
-                icon: Icons.wifi_off_outlined,
-                text: "Geen internet",
-              ),
+            child: EmptyPage(
+              icon: Icons.wifi_off_outlined,
+              text: "Geen internet",
             ),
           ),
           busyBuilder: (context) => Container(
@@ -94,7 +89,7 @@ class _Huiswerk extends State<Huiswerk> with AfterLayoutMixin<Huiswerk>, SingleT
           dataBuilder: (c, _) {
             List<List<Les>> week = account().lessons[buildSlug];
             List<Les> huiswerkLessen = week.expand((x) => x).where((les) => les.huiswerk != null).toList();
-            List<Widget> huiswerk = [];
+            List<Widget> huiswerkWidgets = [];
 
             if (huiswerkLessen.isEmpty)
               return EmptyPage(
@@ -105,10 +100,10 @@ class _Huiswerk extends State<Huiswerk> with AfterLayoutMixin<Huiswerk>, SingleT
             String lastDay;
             for (Les les in huiswerkLessen) {
               if (lastDay != les.date) {
-                huiswerk.add(ContentHeader(les.date));
+                huiswerkWidgets.add(ContentHeader(les.date));
               }
               lastDay = les.date;
-              huiswerk.add(
+              huiswerkWidgets.add(
                 MaterialCard(
                   child: ExpansionTile(
                     leading: les.huiswerkAf
@@ -152,16 +147,8 @@ class _Huiswerk extends State<Huiswerk> with AfterLayoutMixin<Huiswerk>, SingleT
 
             return RefreshIndicator(
               onRefresh: () => _handleError(buildMonday),
-              child: SingleChildScrollView(
-                physics: AlwaysScrollableScrollPhysics(),
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.symmetric(
-                      horizontal: defaultBorderSide(context),
-                    ),
-                  ),
-                  child: buildLiveList(huiswerk, 4),
-                ),
+              child: ListView(
+                children: huiswerkWidgets,
               ),
             );
           },

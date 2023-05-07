@@ -1,3 +1,4 @@
+import 'package:argo/src/ui/components/grayBorder.dart';
 import 'package:flutter/material.dart';
 
 import 'package:share/share.dart';
@@ -10,7 +11,7 @@ import 'package:argo/src/utils/boxes.dart';
 import 'package:argo/src/utils/capitalize.dart';
 import 'package:argo/src/utils/handleError.dart';
 import 'package:argo/src/utils/account.dart';
-import 'package:argo/src/utils/notifications.dart';
+import 'package:argo/src/utils/background.dart';
 
 import 'package:argo/src/ui/components/Card.dart';
 import 'package:argo/src/ui/components/AppPage.dart';
@@ -90,8 +91,9 @@ class CustomInstelling extends StatelessWidget {
   final String subtitle;
   final Function onTap;
   final Widget trailing;
+  final bool disabled;
 
-  CustomInstelling({this.title, this.onTap, this.trailing, this.subtitle});
+  CustomInstelling({this.title, this.onTap, this.trailing, this.subtitle, this.disabled = false});
 
   Widget build(BuildContext context) {
     return MaterialCard(
@@ -99,6 +101,7 @@ class CustomInstelling extends StatelessWidget {
         title: Text(title),
         onTap: onTap,
         trailing: trailing,
+        enabled: !disabled,
         subtitle: subtitle != null
             ? SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -121,12 +124,13 @@ class InstellingPagina extends StatelessWidget {
 
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: Text(instelling),
-        ),
-        body: StatefulBuilder(
-          builder: page,
-        ));
+      appBar: AppBar(
+        title: Text(instelling),
+      ),
+      body: StatefulBuilder(
+        builder: page,
+      ),
+    );
   }
 }
 
@@ -220,7 +224,7 @@ class _Instellingen extends State<Instellingen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               BlockPicker(
-                pickerColor: userdata.get(pick),
+                pickerColor: userdata.get(pick) ?? Colors.black,
                 onColorChanged: (color) {
                   appState.setState(() {
                     userdata.put(pick, color);
@@ -244,7 +248,7 @@ class _Instellingen extends State<Instellingen> {
     );
   }
 
-  Future showColorAdvanced(pick) {
+  Future advancedColorPicker(pick) {
     return showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -253,7 +257,7 @@ class _Instellingen extends State<Instellingen> {
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             ColorPicker(
               enableAlpha: false,
-              pickerColor: userdata.get(pick),
+              pickerColor: userdata.get(pick) ?? Colors.black,
               onColorChanged: (color) {
                 appState.setState(() {
                   userdata.put(pick, color);
@@ -299,7 +303,7 @@ class _Instellingen extends State<Instellingen> {
                     CustomInstelling(
                       title: 'Primaire kleur',
                       onTap: () => showColorPicker("primaryColor"),
-                      subtitle: '#${Theme.of(context).primaryColor.value.toRadixString(16).substring(2, 8).toUpperCase()}',
+                      subtitle: "#" + userdata.get("primaryColor").value.toRadixString(16).substring(2, 8).toUpperCase(),
                       trailing: Container(
                         width: 40,
                         height: 40,
@@ -315,7 +319,7 @@ class _Instellingen extends State<Instellingen> {
                   CustomInstelling(
                     title: 'Secundaire kleur',
                     onTap: () => showColorPicker("accentColor"),
-                    subtitle: '#${Theme.of(context).colorScheme.secondary.value.toRadixString(16).substring(2, 8).toUpperCase()}',
+                    subtitle: "#" + userdata.get("accentColor").value.toRadixString(16).substring(2, 8).toUpperCase(),
                     trailing: Container(
                       width: 40,
                       height: 40,
@@ -329,15 +333,32 @@ class _Instellingen extends State<Instellingen> {
                     ),
                   ),
                   SwitchInstelling(
-                    title: "Gekleurde menupictogrammen",
-                    subtitle: "Voegt kleur toe aan de picrogrammen in de zijbalk",
-                    setting: "colorsInDrawer",
-                    onChange: () => appState.setState(() {}),
+                    title: "Custom Border kleur",
+                    setting: "useBorderColor",
+                    subtitle: "Gebruik de kleur die je hier beneden instelt.",
+                    onChange: () => setState(() => {appState.setState(() {})}),
+                  ),
+                  CustomInstelling(
+                    disabled: !userdata.get("useBorderColor"),
+                    title: 'Border kleur',
+                    onTap: () => advancedColorPicker("borderColor"),
+                    subtitle: "#" + grayBorderColor().value.toRadixString(16).substring(2, 8).toUpperCase(),
+                    trailing: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: grayBorderColor(),
+                        border: Border.all(
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
                   ),
                   SwitchInstelling(
-                    title: "Scrollanimatie",
-                    subtitle: "Tegels verschijnen met een animatie",
-                    setting: "liveList",
+                    title: "Gekleurde menupictogrammen",
+                    subtitle: "Voegt kleur toe aan de pictogrammen in de zijbalk",
+                    setting: "colorsInDrawer",
                     onChange: () => appState.setState(() {}),
                   )
                 ]),
@@ -444,6 +465,11 @@ class _Instellingen extends State<Instellingen> {
                     subtitle: "Gebruik de naam van het vak",
                     setting: "useVakName",
                   ),
+                  SwitchInstelling(
+                    title: "Laat uitval altijd zien",
+                    subtitle: "Bij uren die verwijderd zijn geeft Magister een andere code, laat dit ook zien.",
+                    setting: "showStatus5",
+                  )
                 ]),
               );
             },
@@ -454,9 +480,18 @@ class _Instellingen extends State<Instellingen> {
             builder: (BuildContext context, StateSetter setState) {
               return ListView(
                 children: divideListTiles([
+                  SwitchInstelling(
+                    title: "Notificaties voor lessen",
+                    subtitle: "Ontvang automatisch meldingen voor lessen.",
+                    setting: "lessonNotifications",
+                    onChange: () => setState(() {
+                      Notifications.cancel();
+                    }),
+                  ),
                   CustomInstelling(
-                    title: "Lesmelding",
-                    subtitle: "Hoeveel minuten voor de les je een melding krijgt",
+                    disabled: !userdata.get("lessonNotifications"),
+                    title: "Lesmelding tijd ",
+                    subtitle: "Hoeveel minuten voor de les je een melding krijgt.",
                     trailing: CircleShape(
                       child: Text(userdata.get("preNotificationMinutes").toString()),
                     ),
@@ -474,7 +509,39 @@ class _Instellingen extends State<Instellingen> {
                       if (value != null)
                         setState(() {
                           userdata.put("preNotificationMinutes", value);
-                          notifications.lessonNotifications();
+                          Notifications().scheduleBackground();
+                        });
+                    }),
+                  ),
+                  SwitchInstelling(
+                    disabled: !userdata.get("lessonNotifications"),
+                    title: "Haal oude meldingen weg",
+                    subtitle: "Haalt lesmeldingen automatisch weg na een bepaalde tijd.",
+                    setting: "lessonNotificationsExpire",
+                    onChange: () => setState(() {}),
+                  ),
+                  CustomInstelling(
+                    disabled: !userdata.get("lessonNotificationsExpire") || !userdata.get("lessonNotifications"),
+                    title: "Lesmelding duur",
+                    subtitle: "Hoeveel minuten de notificatie blijft.",
+                    trailing: CircleShape(
+                      child: Text(userdata.get("lessonNotificationExpiry").toString()),
+                    ),
+                    onTap: () => showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return NumberPickerDialog.integer(
+                          title: Text("Minuten"),
+                          minValue: 1,
+                          maxValue: 720,
+                          initialIntegerValue: userdata.get("lessonNotificationExpiry"),
+                        );
+                      },
+                    ).then((value) {
+                      if (value != null)
+                        setState(() {
+                          userdata.put("lessonNotificationExpiry", value);
+                          Notifications().scheduleBackground();
                         });
                     }),
                   )
@@ -571,8 +638,8 @@ class _Instellingen extends State<Instellingen> {
                     ),
                     CustomInstelling(
                       title: 'Aangepaste primaire kleur',
-                      onTap: () => showColorAdvanced("primaryColor"),
-                      subtitle: '#${Theme.of(context).primaryColor.value.toRadixString(16).substring(2, 8).toUpperCase()}',
+                      onTap: () => advancedColorPicker("primaryColor"),
+                      subtitle: "#" + userdata.get("primaryColor").value.toRadixString(16).substring(2, 8).toUpperCase(),
                       trailing: Container(
                         width: 40,
                         height: 40,
@@ -587,8 +654,8 @@ class _Instellingen extends State<Instellingen> {
                     ),
                     CustomInstelling(
                       title: 'Aangepaste secundaire kleur',
-                      onTap: () => showColorAdvanced("accentColor"),
-                      subtitle: '#${Theme.of(context).colorScheme.secondary.value.toRadixString(16).substring(2, 8).toUpperCase()}',
+                      onTap: () => advancedColorPicker("accentColor"),
+                      subtitle: "#" + userdata.get("accentColor").value.toRadixString(16).substring(2, 8).toUpperCase(),
                       trailing: Container(
                         width: 40,
                         height: 40,
@@ -661,22 +728,20 @@ class LogPagina extends StatelessWidget {
       body: ValueListenableBuilder(
         valueListenable: errorLog,
         builder: (BuildContext context, log, _a) => ListView(
-          children: [
+          children: divideListTiles([
             for (FlutterErrorDetails error in errorLog.value.reversed)
-              Column(
-                children: [
-                  ExpansionTile(
-                    title: Text(error.exceptionAsString()),
-                    subtitle: Text(error.context.toString()),
-                    children: [
-                      ListTile(
-                        subtitle: Text(error.stack.toString()),
-                      )
-                    ],
-                  ),
-                ],
+              MaterialCard(
+                child: ExpansionTile(
+                  title: Text(error.exceptionAsString()),
+                  subtitle: Text(error.context.toString()),
+                  children: [
+                    ListTile(
+                      subtitle: Text(error.stack.toString()),
+                    )
+                  ],
+                ),
               ),
-          ],
+          ]),
         ),
       ),
     );
@@ -700,21 +765,18 @@ class DataPagina extends StatelessWidget {
           ),
         ],
       ),
-      body: MaterialCard(
-        child: ListView(
-          children: divideListTiles(
-            userdata
-                .toMap()
-                .entries
-                .map((e) => ListTile(
-                      title: Text(e.key.toString()),
-                      subtitle: Text(
-                        e.value.toString(),
-                      ),
-                    ))
-                .toList(),
-          ),
-        ),
+      body: ListView(
+        children: divideListTiles([
+          for (var setting in userdata.toMap().entries)
+            MaterialCard(
+              child: ListTile(
+                title: Text(setting.key.toString()),
+                subtitle: Text(
+                  setting.value.toString(),
+                ),
+              ),
+            )
+        ]),
       ),
     );
   }
